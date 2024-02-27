@@ -1,6 +1,6 @@
 # Learning Zig
 
-The main repository of my journey of learning low level programming in Zig from zero.
+The main repository of my journey learning low level programming in Zig from zero.
 
 ## Documentation
 
