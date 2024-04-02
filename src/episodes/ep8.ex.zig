@@ -1,64 +1,92 @@
+// Pointers
+
 const std = @import("std");
 
+pub fn log(comptime fmt: []const u8, args: anytype) void {
+    std.debug.print(fmt, args);
+}
+
+pub fn printArray(array: []u8) !void {
+    log("array: [", .{});
+    for (array) |el| {
+        log(" {},", .{el});
+    }
+    log(" ]\n\n", .{});
+}
+
 pub fn main() !void {
-    // A slice with comptime known bounds results in a pointer to an array
-    var array = [_]u8{ 0, 1, 2, 3, 4, 5 };
-    const array_ptr = array[0..array.len];
-    std.debug.print("\n\narray: {any}\n", .{array});
-    std.debug.print("array_ptr type: {}\n", .{@TypeOf(array_ptr)});
+    const a: u8 = 0;
+    const a_ptr = &a;
 
-    std.debug.print("\n", .{});
+    // ! Error, pointed value is constant
+    // * a_ptr.* += 1;
+    log("a_ptr: {} a_ptr type: {}\n", .{ a_ptr.*, @TypeOf(a_ptr) });
 
-    // force runtime 0
-    var zero: usize = 0;
+    var b: u8 = 0;
+    const b_ptr = &b;
 
-    // slice by using slicing syntax
-    const a_slice: []u8 = &array;
-    a_slice[0] += 1;
-    std.debug.print("a_slice[0]: {}, a_slice.len: {}\n", .{ a_slice[0], a_slice.len });
+    //? Works because b is var not const
+    b_ptr.* += 1;
+    log("b_ptr: {} b_ptr type: {}\n", .{ b_ptr.*, @TypeOf(b_ptr) });
 
-    // A slice is a multi-item pointer and a length (usize).
-    std.debug.print("a_slice.ptr: {}\n", .{@TypeOf(a_slice.ptr)});
-    std.debug.print("a_slice.len: {}\n", .{@TypeOf(a_slice.len)});
-    std.debug.print("\n", .{});
+    // ! Error, pointers are constant, can't be reassigned
+    // a_ptr = &b;
+    // b_ptr = &a;
 
-    // Slice with runtime-known bounds.
-    var b_slice = array[zero..];
-    b_slice.ptr += 2; // Pointer arithmetic on multi-item pointer
-    std.debug.print("b_slice with moved ptr: {any}\n", .{b_slice});
-    b_slice.len -= 2;
-    std.debug.print("b_slice shrinked: {any}\n", .{b_slice});
-    std.debug.print("\n", .{});
+    //? Use var pointer to change where to point
+    var c_ptr = a_ptr;
+    c_ptr = b_ptr; //* OK!
+    log("c_ptr: {} c_ptr type: {}\n", .{ c_ptr.*, @TypeOf(c_ptr) });
 
-    // slicing slices
-    std.debug.print("array: {any}\n", .{array});
-    const c_slice: []const u8 = a_slice[zero..3]; // coercing var slice into const slice
-    std.debug.print("c_slice ([zero..3]): {any}\n", .{c_slice});
+    log("\n", .{});
 
-    // slices have bound checking
-    // c_slice[10] = 2; // ! Error - Panic
-    std.debug.print("\n", .{});
+    //? Multi-item pointer
+    var array = [_]u8{ 1, 2, 3, 4, 5, 6 };
 
-    const d_slice = array_ptr[zero..2];
-    std.debug.print("d_slice: {any}\n\n", .{d_slice});
+    try printArray(&array);
 
-    // Sentinel terminated slice
-    array[4] = 0;
-    const e_slice: [:0]u8 = array[0..4 :0];
-    std.debug.print("e_slice[e_slice.len]: {}\n", .{e_slice[e_slice.len]});
-    std.debug.print("e_slice: {any}, e_slice.len: {}\n", .{ e_slice, e_slice.len });
+    var d_ptr: [*]u8 = &array;
 
-    std.debug.print("\n", .{});
+    log("d_ptr[0]: {} d_ptr type: {}\n", .{ d_ptr[0], @TypeOf(d_ptr) });
+    d_ptr[1] += 1; // index op
+    d_ptr += 1; // * Pointer arithmetic - new [0] is now [1]
+    log("d_ptr[0]: {} d_ptr type: {}\n", .{ d_ptr[0], @TypeOf(d_ptr) });
+    d_ptr -= 1; // * Pointer arithmetic - new [0] is now [-1]
+    log("d_ptr[0]: {} d_ptr type: {}\n", .{ d_ptr[0], @TypeOf(d_ptr) });
+    log("\n", .{});
 
-    var start: usize = 2;
-    var length: usize = 4;
+    //? Pointer to array
+    const e_ptr = &array;
+    e_ptr[1] += 1;
 
-    std.debug.print("array {any}\n", .{array});
-    const f_slice = array[start..][0..length];
-    std.debug.print("start: {}, length: {}\n", .{ start, length });
-    std.debug.print("f_slice = array[start..][0..length]: {any}\n", .{f_slice});
+    log("e_ptr[0]: {} e_ptr type: {}\n", .{ e_ptr[0], @TypeOf(e_ptr) });
+    log("e_ptr[1]: {} e_ptr type: {}\n", .{ e_ptr[1], @TypeOf(e_ptr) });
+    log("array[1]: {}\n", .{array[0]});
+    log("e_ptr.len: {}\n", .{e_ptr.len});
+    log("\n", .{});
 
-    zero = 1;
-    start = 3;
-    length = 5;
+    //? Sentinel terminated pointer
+    array[3] = 0;
+    try printArray(&array);
+
+    const f_ptr: [*:0]const u8 = array[0..3 :0];
+    log("f_ptr[0]: {} f_ptr type: {}\n", .{ f_ptr[1], @TypeOf(f_ptr) });
+    log("\n", .{});
+
+    //? Address as integer
+    const address = @intFromPtr(f_ptr);
+    log("address: {} address type: {}\n", .{ address, @TypeOf(address) });
+
+    //? Integer to address
+    const g_ptr: [*:0]const u8 = @ptrFromInt(address);
+    log("g_ptr[1]: {} g_ptr type: {}\n", .{ g_ptr[1], @TypeOf(g_ptr) });
+    log("\n", .{});
+
+    //? Optional pointer = pointer that can be null
+    var h_ptr: ?*const usize = null;
+    log("h_ptr: {?} h_ptr type: {}\n", .{ h_ptr, @TypeOf(h_ptr) });
+
+    h_ptr = &address;
+    log("h_ptr.?.*: {} h_ptr type: {}\n", .{ h_ptr.?.*, @TypeOf(h_ptr) });
+    log("h_ptr size: {} h_ptr usize: {}\n", .{ @sizeOf(@TypeOf(h_ptr)), @sizeOf(*usize) });
 }

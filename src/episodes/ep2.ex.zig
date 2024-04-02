@@ -1,3 +1,5 @@
+// Constants and variables
+
 const std = @import("std");
 
 //? Constants and variables are snake_case

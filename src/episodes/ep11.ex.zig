@@ -1,58 +1,64 @@
+// While loop
+
 const std = @import("std");
-
-// Sum a + b
-fn add(a: u8, b: u8) u8 {
-    return a +| b;
-}
-
-// print a u8 and return void
-fn printU8(n: u8) void {
-    std.debug.print("{}", .{n});
-}
-
-// Throw error and never returns
-fn oops() noreturn {
-    @panic("Oops!");
-}
-
-// If a function is never called, it isn't even evaluated
-fn never() void {
-    @compileError("Never happens...");
-}
-
-// A `pub` function can be imported from another namespace.
-pub fn sub(a: u8, b: u8) u8 {
-    return a -| b;
-}
-
-// An `extern` function is linked in from an external object file.
-extern "c" fn atan2(a: f64, b: f64) f64;
-
-// An `export` function is made available for use in the generated object file.
-export fn mul(a: u8, b: u8) u8 {
-    return a *| b;
-}
-
-// Force a function to inlined, usually unnecesary.
-inline fn answer() u8 {
-    return 42;
-}
-
-// Parameters are always constant and zig determines whether to pass by value or by reference
-fn addOneNot(n: u8) void {
-    n += 1; // ! Error, params are const
-}
-
-// If you wand to modify the parameter inside the function, make it ptr.
-fn addOne(n: *u8) void {
-    n.* += 1; // * OK
-}
 
 pub fn main() !void {
     std.debug.print("\n", .{});
 
-    var n: u8 = 9;
+    var i: usize = 0;
+    // Basic while
+    while (i < 3) {
+        std.debug.print("{} ", .{i});
+        i += 1;
+    }
+    std.debug.print("\n", .{});
 
-    addOne(&n);
-    std.debug.print("n: {} \n", .{n});
+    // Continue expression (One-liner while loop)
+    i = 0;
+    while (i < 3) : (i += 1) std.debug.print("{} ", .{i});
+    std.debug.print("\n", .{});
+
+    // Complex continue expression
+    i = 0;
+    var j: usize = 0;
+    while (i < 3) : ({
+        i += 1;
+        j += 1;
+    }) std.debug.print("{}-{} ", .{ i, j });
+    std.debug.print("\n", .{});
+
+    // While loop with blocks
+    i = 0;
+    outer: while (true) : (i += 1) {
+        while (i < 10) : (i += 1) {
+            if (i == 4) continue :outer;
+            if (i == 6) break :outer;
+            std.debug.print("{} ", .{i});
+        }
+    }
+    std.debug.print("\n", .{});
+
+    // While loop as expression
+    const start: usize = 1;
+    const end: usize = 20;
+    i = start;
+    const n: usize = 20;
+    const in_range = while (i <= end) : (i += 1) {
+        if (n == i) break true;
+    } else false;
+    std.debug.print("{} in [{}, {}]? {}\n", .{ n, start, end, in_range });
+
+    // While with optional and capture
+    count_down = 10;
+    while (countDownIterator()) |num| std.debug.print("{} ", .{num});
+    std.debug.print("\n", .{});
+}
+
+var count_down: usize = undefined;
+
+fn countDownIterator() ?usize {
+    return if (count_down == 0) null else blk: {
+        count_down -= 1;
+        break :blk count_down;
+    };
 }

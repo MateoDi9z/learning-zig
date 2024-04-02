@@ -1,72 +1,66 @@
+// Slices
+
 const std = @import("std");
 
 pub fn main() !void {
-    std.debug.print("\n", .{});
+    // A slice with comptime known bounds results in a pointer to an array
     var array = [_]u8{ 0, 1, 2, 3, 4, 5 };
+    const array_ptr = array[0..array.len];
+    std.debug.print("\n\narray: {any}\n", .{array});
+    std.debug.print("array_ptr type: {}\n", .{@TypeOf(array_ptr)});
 
-    // Iterate over array
-    for (array) |item| std.debug.print("{} ", .{item});
     std.debug.print("\n", .{});
 
-    // or over slices
-    for (array[0..3]) |item| std.debug.print("{} ", .{item});
+    // force runtime 0
+    var zero: usize = 0;
+
+    // slice by using slicing syntax
+    const a_slice: []u8 = &array;
+    a_slice[0] += 1;
+    std.debug.print("a_slice[0]: {}, a_slice.len: {}\n", .{ a_slice[0], a_slice.len });
+
+    // A slice is a multi-item pointer and a length (usize).
+    std.debug.print("a_slice.ptr: {}\n", .{@TypeOf(a_slice.ptr)});
+    std.debug.print("a_slice.len: {}\n", .{@TypeOf(a_slice.len)});
     std.debug.print("\n", .{});
 
-    // Add range to have an index
-    for (array, 0..) |item, i| std.debug.print("i: {}, el: {}\n", .{ i, item });
+    // Slice with runtime-known bounds.
+    var b_slice = array[zero..];
+    b_slice.ptr += 2; // Pointer arithmetic on multi-item pointer
+    std.debug.print("b_slice with moved ptr: {any}\n", .{b_slice});
+    b_slice.len -= 2;
+    std.debug.print("b_slice shrinked: {any}\n", .{b_slice});
     std.debug.print("\n", .{});
 
-    // iterate over multiple slices, must be equal length
-    for (array[0..2], array[1..3], array[2..4]) |a, b, c| {
-        std.debug.print("{}-{}-{}\n", .{ a, b, c });
-    }
+    // slicing slices
+    std.debug.print("array: {any}\n", .{array});
+    const c_slice: []const u8 = a_slice[zero..3]; // coercing var slice into const slice
+    std.debug.print("c_slice ([zero..3]): {any}\n", .{c_slice});
+
+    // slices have bound checking
+    // c_slice[10] = 2; // ! Error - Panic
     std.debug.print("\n", .{});
 
-    // iterate over range
-    for (3..10) |item| std.debug.print("{} ", .{item});
-    std.debug.print("\n\n", .{});
+    const d_slice = array_ptr[zero..2];
+    std.debug.print("d_slice: {any}\n\n", .{d_slice});
 
-    var sum: usize = 0;
-    // break and continue
-    for (array) |item| {
-        if (item == 3) continue;
-        if (item == 4) break;
-        sum += item;
-    }
-    std.debug.print("sum: {}\n", .{sum});
+    // Sentinel terminated slice
+    array[4] = 0;
+    const e_slice: [:0]u8 = array[0..4 :0];
+    std.debug.print("e_slice[e_slice.len]: {}\n", .{e_slice[e_slice.len]});
+    std.debug.print("e_slice: {any}, e_slice.len: {}\n", .{ e_slice, e_slice.len });
 
-    // use a label to break or continue from a nested loop
-    sum = 0;
-    outer: for (0..10) |oi| {
-        for (1..3) |ii| {
-            if (oi == 5) break :outer;
-            sum += ii;
-        }
-    }
-    std.debug.print("sum: {}\n\n", .{sum});
-
-    // Obtein pointer to the item to modify it
-    // Object can't be const and must use a pointer to modify
-    // (Remember a slices is also a pointer type.)
-    for (&array) |*item| {
-        std.debug.print("{} -> ", .{item.*});
-        item.* *= 2;
-        std.debug.print("{} \n", .{item.*});
-    }
     std.debug.print("\n", .{});
 
-    // Array is now mutated
-    std.debug.print("{any} \n", .{array});
+    var start: usize = 2;
+    var length: usize = 4;
 
-    // A for loop can be an expression with an else clause
-    // Here's how to obtein a slice of just the first non-null elements of an array of optionals
-    const maybe_nums = [_]?u8{ 0, 1, 2, null, null };
+    std.debug.print("array {any}\n", .{array});
+    const f_slice = array[start..][0..length];
+    std.debug.print("start: {}, length: {}\n", .{ start, length });
+    std.debug.print("f_slice = array[start..][0..length]: {any}\n", .{f_slice});
 
-    const just_nums = for (maybe_nums, 0..) |opt_nums, i| {
-        // break with value returns value
-        if (opt_nums == null) break maybe_nums[0..i];
-
-        // if break never reached, then else executes
-    } else maybe_nums[0..];
-    std.debug.print("just_nums: {any} \n", .{just_nums});
+    zero = 1;
+    start = 3;
+    length = 5;
 }
